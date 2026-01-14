@@ -15,17 +15,17 @@ export default function HomeScreen() {
     >
       <View style={styles.content}>
         <Dices size={80} color={COLORS.primary} strokeWidth={2} />
-        <Text style={styles.title}>Magic Dice</Text>
-        <Text style={styles.subtitle}>Shake to roll • Physics-powered</Text>
+        <Text style={styles.title}>Dado Mágico</Text>
+        <Text style={styles.subtitle}>Agita para lanzar • Física en tiempo real</Text>
 
         <View style={styles.features}>
           <View style={styles.feature}>
             <Smartphone size={24} color={COLORS.primary} />
-            <Text style={styles.featureText}>Accelerometer</Text>
+            <Text style={styles.featureText}>Acelerómetro</Text>
           </View>
           <View style={styles.feature}>
             <Zap size={24} color={COLORS.secondary} />
-            <Text style={styles.featureText}>Real-time Physics</Text>
+            <Text style={styles.featureText}>Física en Tiempo Real</Text>
           </View>
         </View>
 
@@ -39,7 +39,7 @@ export default function HomeScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>Start Rolling</Text>
+            <Text style={styles.buttonText}>Comenzar a Lanzar</Text>
           </LinearGradient>
         </Pressable>
       </View>

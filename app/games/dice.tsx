@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Pressable, StatusBar} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Dices,  RotateCcw, Loader2, Clock, Smartphone, AlertTriangle} from 'lucide-react-native';
+import { Dices, RotateCcw, Loader2, Clock, Smartphone, AlertTriangle} from 'lucide-react-native';
 import { useAccelerometer } from '@/lib/modules/sensors/accelerometer/useAccelerometer';
 import { isShaking, getShakeIntensity } from '@/lib/core/logic/motion';
 import { rollDice } from '@/lib/core/logic/dice';
@@ -88,7 +88,8 @@ export default function DiceGameScreen() {
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
-  //componente de estado
+
+  //Componente de estado con iconos
   const renderStatusIndicator = () => {
     if (isRolling) {
       return (
@@ -96,7 +97,7 @@ export default function DiceGameScreen() {
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
             <Loader2 size={24} color={COLORS.primary} strokeWidth={2.5} />
           </Animated.View>
-          <Text style={styles.instruction}>Rolling...</Text>
+          <Text style={styles.instruction}>Lanzando...</Text>
         </View>
       );
     }
@@ -105,7 +106,7 @@ export default function DiceGameScreen() {
       return (
         <View style={styles.statusContainer}>
           <Clock size={24} color={COLORS.warning} strokeWidth={2.5} />
-          <Text style={styles.instruction}>Wait a moment...</Text>
+          <Text style={styles.instruction}>Espera un momento...</Text>
         </View>
       );
     }
@@ -113,7 +114,7 @@ export default function DiceGameScreen() {
     return (
       <View style={styles.statusContainer}>
         <Smartphone size={24} color={COLORS.success} strokeWidth={2.5} />
-        <Text style={styles.instruction}>Shake to roll!</Text>
+        <Text style={styles.instruction}>¡Agita para lanzar!</Text>
       </View>
     );
   };
@@ -125,33 +126,33 @@ export default function DiceGameScreen() {
         colors={['#0F172A', '#1E293B', '#334155']}
         style={styles.gradient}
       >
-        {/* Header */}
+        {/* Encabezado */}
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Dices size={32} color={COLORS.primary} strokeWidth={2.5} />
-            <Text style={styles.title}>Magic Dice</Text>
+            <Text style={styles.title}>Dado Mágico</Text>
           </View>
           <Pressable onPress={handleReset} style={styles.resetButton}>
             <RotateCcw size={24} color={COLORS.primary} />
           </Pressable>
         </View>
 
-        {/* Stats */}
+        {/* Estadísticas */}
         <GlassCard style={styles.statsCard}>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Rolls</Text>
+              <Text style={styles.statLabel}>Lanzamientos</Text>
               <Text style={styles.statValue}>{rollCount}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Last</Text>
+              <Text style={styles.statLabel}>Último</Text>
               <Text style={styles.statValue}>{diceValue}</Text>
             </View>
           </View>
         </GlassCard>
 
-        {/* Dice Container */}
+        {/* Contenedor del Dado */}
         <View style={styles.diceContainer}>
           <Animated.View
             style={[
@@ -170,7 +171,7 @@ export default function DiceGameScreen() {
             <DiceFace value={diceValue} />
           </Animated.View>
 
-          {/* Particles Effect */}
+          {/* Efecto de Partículas */}
           {[...Array(8)].map((_, i) => (
             <Animated.View
               key={i}
@@ -201,13 +202,13 @@ export default function DiceGameScreen() {
           ))}
         </View>
 
-        {/* Shake Indicator */}
+        {/* Indicador de Agitación */}
         <View style={styles.indicatorContainer}>
           <ShakeIndicator intensity={intensity} />
           {renderStatusIndicator()}
         </View>
 
-        {/* Manual Roll Button */}
+        {/* Botón de Lanzamiento Manual */}
         <Pressable
           onPress={handleRoll}
           disabled={!canRoll || isRolling}
@@ -223,15 +224,15 @@ export default function DiceGameScreen() {
             style={styles.rollButtonGradient}
           >
             <Dices size={20} color="#FFF" strokeWidth={2.5} />
-            <Text style={styles.rollButtonText}>Roll Manually</Text>
+            <Text style={styles.rollButtonText}>Lanzar Manualmente</Text>
           </LinearGradient>
         </Pressable>
 
-        {/* Sensor Status */}
+        {/* Estado del Sensor */}
         {!isAvailable && (
           <View style={styles.warningContainer}>
             <AlertTriangle size={20} color={COLORS.warning} strokeWidth={2.5} />
-            <Text style={styles.warning}>Accelerometer not available</Text>
+            <Text style={styles.warning}>Acelerómetro no disponible</Text>
           </View>
         )}
       </LinearGradient>
