@@ -66,8 +66,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cell: {
-    width: DOT_SIZE + 8,  // ← Ahora funciona
-    height: DOT_SIZE + 8, // ← Ahora funciona
+    width: DOT_SIZE + 8,
+    height: DOT_SIZE + 8, 
     justifyContent: 'center',
     alignItems: 'center',
   },
