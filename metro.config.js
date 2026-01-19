@@ -1,19 +1,15 @@
 const { getDefaultConfig } = require('expo/metro-config');
 
-/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Agregar extensiones de archivos 3D
-config.resolver.assetExts.push(
-  // Modelos 3D
-  'glb',
-  'gltf',
-  'obj',
-  'mtl',
-  'fbx',
-  // Texturas
-  'bin',
-  'hdr'
-);
+// Aseguramos que estas extensiones se traten como assets
+const assetExts = ['glb', 'gltf', 'bin', 'obj', 'fbx'];
+
+// Añadimos solo las que no estén ya
+assetExts.forEach((ext) => {
+  if (!config.resolver.assetExts.includes(ext)) {
+    config.resolver.assetExts.push(ext);
+  }
+});
 
 module.exports = config;

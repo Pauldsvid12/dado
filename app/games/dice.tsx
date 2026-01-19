@@ -1,16 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Pressable, StatusBar} from 'react-native';
+import { View, Text, StyleSheet, Animated, Pressable, StatusBar, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Dices, RotateCcw, Loader2, Clock, Smartphone, AlertTriangle} from 'lucide-react-native';
+import { 
+  Dices, 
+  RotateCcw, 
+  Loader2, 
+  Clock, 
+  Smartphone, 
+  AlertTriangle 
+} from 'lucide-react-native';
+
+// Módulos y Lógica
 import { useAccelerometer } from '@/lib/modules/sensors/accelerometer/useAccelerometer';
-import { isShaking, getShakeIntensity } from '@/lib/core/logic/motion';
-import { rollDice } from '@/lib/core/logic/dice';
-import { DiceFace } from '@/components/molecules/DiceFace';
+import { Scene3D } from '@/components/models3d/Scene3D';
 import { ShakeIndicator } from '@/components/molecules/ShakeIndicator';
 import { GlassCard } from '@/components/atoms/GlassCard';
-import { useDiceAnimation } from '@/hooks/useDiceAnimation';
 import { COLORS, COOLDOWN_TIME } from '@/lib/core/constants';
+
+// Lógica local para el dado (con el truco del 9)
+const rollDiceLogic = () => {
+  const result = Math.floor(Math.random() * 6) + 1;
+  // Si sale 3, devolvemos 9 para coincidir con tu modelo
+  return result === 3 ? 9 : result;
+};
+
+// Función auxiliar para intensidad de shake (si no tienes el hook 'isShaking' separado)
+const getShakeIntensity = (data: { x: number; y: number; z: number }) => {
+  return Math.sqrt(data.x ** 2 + data.y ** 2 + data.z ** 2);
+};
 
 export default function DiceGameScreen() {
   const [diceValue, setDiceValue] = useState(1);
@@ -18,19 +36,25 @@ export default function DiceGameScreen() {
   const [rollCount, setRollCount] = useState(0);
   const [canRoll, setCanRoll] = useState(true);
 
+  // Acelerómetro
   const { data, isAvailable } = useAccelerometer();
-  const animations = useDiceAnimation(isRolling);
   const intensity = getShakeIntensity(data);
 
+  // Animaciones
   const particlesAnim = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(new Animated.Value(0)).current;
 
+  // Efecto de Shake
   useEffect(() => {
-    if (isShaking(data) && canRoll && !isRolling) {
+    // Umbral de shake (ajustable)
+    const isShaking = intensity > 1.8; 
+
+    if (isShaking && canRoll && !isRolling && isAvailable) {
       handleRoll();
     }
-  }, [data, canRoll, isRolling]);
+  }, [data, canRoll, isRolling, isAvailable, intensity]);
 
+  // Animación de carga (spinner)
   useEffect(() => {
     if (isRolling) {
       Animated.loop(
@@ -51,8 +75,11 @@ export default function DiceGameScreen() {
     setCanRoll(false);
     setIsRolling(true);
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
 
+    // Animación de partículas
     Animated.sequence([
       Animated.timing(particlesAnim, {
         toValue: 1,
@@ -66,20 +93,25 @@ export default function DiceGameScreen() {
       }),
     ]).start();
 
+    // Generar resultado y actualizar estado
     setTimeout(() => {
-      const newValue = rollDice();
+      const newValue = rollDiceLogic();
       setDiceValue(newValue);
       setRollCount((prev) => prev + 1);
       setIsRolling(false);
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
 
       setTimeout(() => setCanRoll(true), COOLDOWN_TIME);
-    }, 800);
+    }, 1000); // 1 segundo coincide con tu animación 3D
   };
 
   const handleReset = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
     setDiceValue(1);
     setRollCount(0);
   };
@@ -89,7 +121,7 @@ export default function DiceGameScreen() {
     outputRange: ['0deg', '360deg'],
   });
 
-  //Componente de estado con iconos
+  // Renderizado del indicador de estado
   const renderStatusIndicator = () => {
     if (isRolling) {
       return (
@@ -113,8 +145,14 @@ export default function DiceGameScreen() {
 
     return (
       <View style={styles.statusContainer}>
-        <Smartphone size={24} color={COLORS.success} strokeWidth={2.5} />
-        <Text style={styles.instruction}>¡Agita para lanzar!</Text>
+        {isAvailable ? (
+          <>
+            <Smartphone size={24} color={COLORS.success} strokeWidth={2.5} />
+            <Text style={styles.instruction}>¡Agita para lanzar!</Text>
+          </>
+        ) : (
+          <Text style={styles.instruction}>Listo para lanzar</Text>
+        )}
       </View>
     );
   };
@@ -152,24 +190,15 @@ export default function DiceGameScreen() {
           </View>
         </GlassCard>
 
-        {/* Contenedor del Dado */}
+        {/* Contenedor del Dado 3D */}
         <View style={styles.diceContainer}>
-          <Animated.View
-            style={[
-              styles.diceWrapper,
-              {
-                transform: [
-                  { rotateX: animations.rotateX },
-                  { rotateY: animations.rotateY },
-                  { rotateZ: animations.rotateZ },
-                  { scale: animations.scale },
-                ],
-                opacity: animations.opacity,
-              },
-            ]}
-          >
-            <DiceFace value={diceValue} />
-          </Animated.View>
+          <Scene3D
+            isRolling={isRolling}
+            diceValue={diceValue}
+            onAnimationComplete={() => {
+              // Callback opcional si necesitas sincronizar algo exacto
+            }}
+          />
 
           {/* Efecto de Partículas */}
           {[...Array(8)].map((_, i) => (
@@ -202,9 +231,9 @@ export default function DiceGameScreen() {
           ))}
         </View>
 
-        {/* Indicador de Agitación */}
+        {/* Indicador de Agitación / Estado */}
         <View style={styles.indicatorContainer}>
-          <ShakeIndicator intensity={intensity} />
+          {isAvailable && <ShakeIndicator intensity={intensity} />}
           {renderStatusIndicator()}
         </View>
 
@@ -224,11 +253,13 @@ export default function DiceGameScreen() {
             style={styles.rollButtonGradient}
           >
             <Dices size={20} color="#FFF" strokeWidth={2.5} />
-            <Text style={styles.rollButtonText}>Lanzar Manualmente</Text>
+            <Text style={styles.rollButtonText}>
+              {isRolling ? 'Lanzando...' : 'Lanzar Manualmente'}
+            </Text>
           </LinearGradient>
         </Pressable>
 
-        {/* Estado del Sensor */}
+        {/* Aviso de Sensor no disponible */}
         {!isAvailable && (
           <View style={styles.warningContainer}>
             <AlertTriangle size={20} color={COLORS.warning} strokeWidth={2.5} />
@@ -299,9 +330,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  diceWrapper: {
     position: 'relative',
+    minHeight: 300, // Asegura espacio para el modelo 3D
   },
   particle: {
     position: 'absolute',

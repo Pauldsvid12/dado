@@ -8,8 +8,15 @@
     "scheme": "dado",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "**/*",
+      "assets/**/*",
+      "assets/models/*.glb",
+      "assets/models/*.gltf"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.dado"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +26,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.yourname.dado",
+      "permissions": [
+        "ACCELEROMETER"
+      ]
     },
     "web": {
       "output": "static",
