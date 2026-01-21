@@ -6,29 +6,34 @@ import * as THREE from 'three';
 import '@/lib/utils/three-setup';
 // @ts-ignore
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { Ingredient } from '@/types/burger';
 
-type BurgerPart = {
-  id: string;
-  label: string;
-  source: number; // require('...glb')
+// Mapa de assets: Asocia el "tipo" de ingrediente con su archivo .glb
+const ASSETS_MAP: Record<string, number> = {
+  panarriba: require('@/assets/models/burger/panarriba.glb'),
+  lechuga: require('@/assets/models/burger/lechuga.glb'),
+  queso: require('@/assets/models/burger/queso.glb'),
+  carne: require('@/assets/models/burger/carne.glb'),
+  tomates: require('@/assets/models/burger/tomates.glb'),
+  panabajo: require('@/assets/models/burger/panabajo.glb'),
 };
 
 type BurgerCanvasProps = {
-  parts: BurgerPart[];
+  ingredients: Ingredient[];
   style?: ViewStyle;
   backgroundColorHex?: number;
   autoRotate?: boolean;
-  targetHeight?: number;        // <- para agrandar/achicar
-  layerGap?: number;            // <- separación entre capas
-  hideSeeds?: boolean;          // <- ocultar semillas por nombre
+  targetHeight?: number;
+  layerGap?: number;
+  hideSeeds?: boolean;
 };
 
 export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
-  parts,
+  ingredients,
   style,
   backgroundColorHex = 0x0f172a,
   autoRotate = true,
-  targetHeight = 4.2, // <- más grande (antes 2.6)
+  targetHeight = 4.5,
   layerGap = 0.05,
   hideSeeds = true,
 }) => {
@@ -41,14 +46,14 @@ export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
   const groupRef = useRef<THREE.Group | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const partsKey = useMemo(
-    () => `${parts.map((p) => p.id).join('|')}|h=${targetHeight}|g=${layerGap}|hs=${hideSeeds ? 1 : 0}`,
-    [parts, targetHeight, layerGap, hideSeeds]
+  // Clave única para detectar cambios en la lista de ingredientes
+  const ingredientsKey = useMemo(
+    () => ingredients.map((i) => i.id).join('|'),
+    [ingredients]
   );
 
   const cleanupGroup = () => {
     if (!sceneRef.current || !groupRef.current) return;
-
     const group = groupRef.current;
     sceneRef.current.remove(group);
 
@@ -60,7 +65,6 @@ export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
         else mat?.dispose?.();
       }
     });
-
     groupRef.current = null;
   };
 
@@ -76,36 +80,25 @@ export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
     let cameraZ = Math.abs((maxDim / 2) / Math.tan(fov / 2));
-    cameraZ *= 2.1;
+    cameraZ *= 1.8;
 
-    camera.position.set(0, 0.8, cameraZ);
-    camera.near = cameraZ / 100;
-    camera.far = cameraZ * 100;
-    camera.updateProjectionMatrix();
+    camera.position.set(0, 0.5, cameraZ);
     camera.lookAt(0, 0, 0);
   };
 
   const onContextCreate = (gl: any) => {
     try {
       setLoadError(null);
-
       const width = gl.drawingBufferWidth;
       const height = gl.drawingBufferHeight;
 
-      // Mock canvas para THREE en RN
-      const canvas = {
-        width,
-        height,
-        style: {},
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        clientHeight: height,
-        clientWidth: width,
-      };
-
       const renderer = new THREE.WebGLRenderer({
-        canvas: canvas as any,
-        context: gl as any,
+        canvas: {
+          width, height, style: {},
+          addEventListener: () => {}, removeEventListener: () => {},
+          clientHeight: height, clientWidth: width,
+        } as any,
+        context: gl,
         alpha: true,
         antialias: true,
       });
@@ -119,35 +112,24 @@ export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
       sceneRef.current = scene;
 
       const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-      camera.position.set(0, 0.8, 6);
+      camera.position.set(0, 1, 6);
       cameraRef.current = camera;
 
-      // Luces
-      scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-
-      const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-      dir.position.set(6, 10, 6);
-      scene.add(dir);
-
-      const point = new THREE.PointLight(0x8b5cf6, 0.6);
-      point.position.set(-6, -4, 4);
-      scene.add(point);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+      dirLight.position.set(5, 10, 7);
+      scene.add(dirLight);
 
       setReady(true);
 
       const animate = () => {
         rafRef.current = requestAnimationFrame(animate);
-
         if (autoRotate && groupRef.current) {
-          groupRef.current.rotation.y += 0.01;
+          groupRef.current.rotation.y += 0.005;
         }
-
-        if (rendererRef.current && sceneRef.current && cameraRef.current) {
-          rendererRef.current.render(sceneRef.current, cameraRef.current);
-          gl.endFrameEXP();
-        }
+        renderer.render(scene, camera);
+        gl.endFrameEXP();
       };
-
       animate();
     } catch (e: any) {
       setLoadError(e?.message ?? String(e));
@@ -157,53 +139,58 @@ export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
   useEffect(() => {
     let mounted = true;
 
-    const run = async () => {
+    const loadIngredients = async () => {
+      if (!ready || !sceneRef.current || !cameraRef.current) return;
+      
       try {
-        if (!ready || !sceneRef.current || !cameraRef.current) return;
-
         cleanupGroup();
 
-        const scene = sceneRef.current;
-        const camera = cameraRef.current;
-
         const group = new THREE.Group();
-        scene.add(group);
+        sceneRef.current.add(group);
         groupRef.current = group;
 
         const loader = new GLTFLoader();
         let currentY = 0;
 
-        for (const part of parts) {
-          const asset = Asset.fromModule(part.source);
+        for (const ing of ingredients) {
+          const source = ASSETS_MAP[ing.type];
+          if (!source) continue;
+
+          // 1. Resolver asset
+          const asset = Asset.fromModule(source);
           if (!asset.downloaded) await asset.downloadAsync();
+          
           const uri = asset.localUri || asset.uri;
+          
+          if (!uri) {
+            console.warn(`[Burger] No URI for ${ing.type}`);
+            continue;
+          }
 
-          if (!uri) throw new Error(`No se pudo resolver uri para ${part.id}`);
-
-          const res = await fetch(uri);
-          const buffer = await res.arrayBuffer();
-
-          const basePath = uri.includes('/') ? uri.slice(0, uri.lastIndexOf('/') + 1) : '';
-
-          // parseAsync para ArrayBuffer (pipeline estable)
+          // 2. Cargar usando loader.load() en lugar de parseAsync manual
+          // Esto evita errores de 'match of undefined' al manejar paths en Android
           // @ts-ignore
-          const gltf = await loader.parseAsync(buffer, basePath);
-
+          const gltf = await new Promise((resolve, reject) => {
+            loader.load(
+              uri,
+              (data: any) => resolve(data),
+              undefined,
+              (err: any) => reject(err)
+            );
+          });
+          
           if (!mounted) return;
 
-          const model: THREE.Group = gltf.scene;
+          // @ts-ignore
+          const model = gltf.scene.clone(true);
 
-          // Opción: ocultar semillas por nombre (arreglo rápido)
           if (hideSeeds) {
             model.traverse((child: any) => {
-              const name = String(child?.name ?? '').toLowerCase();
-              if (name.includes('seed') || name.includes('semilla') || name.includes('sesame')) {
-                child.visible = false;
-              }
+              const name = (child.name || '').toLowerCase();
+              if (name.includes('seed') || name.includes('semilla')) child.visible = false;
             });
           }
 
-          // Centrar en X/Z y apilar en Y
           const box = new THREE.Box3().setFromObject(model);
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
@@ -217,59 +204,56 @@ export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
 
           currentY += size.y + layerGap;
 
-          model.traverse((child: any) => {
-            if (child?.isMesh && child.material) {
-              child.material.needsUpdate = true;
-            }
-          });
-
           group.add(model);
         }
 
-        // Escalar toda la hamburguesa
-        const burgerBox = new THREE.Box3().setFromObject(group);
-        const burgerSize = burgerBox.getSize(new THREE.Vector3());
-        const scaleFactor = burgerSize.y > 0 ? targetHeight / burgerSize.y : 1;
-        group.scale.setScalar(scaleFactor);
+        const totalBox = new THREE.Box3().setFromObject(group);
+        const totalSize = totalBox.getSize(new THREE.Vector3());
+        
+        if (totalSize.y > 0) {
+          const scale = targetHeight / totalSize.y;
+          group.scale.setScalar(scale);
+        }
 
-        fitCameraToObject(camera, group);
-
+        fitCameraToObject(cameraRef.current, group);
         setLoadError(null);
+
       } catch (e: any) {
-        setLoadError(e?.message ?? String(e));
+        console.error("Error building burger:", e);
+        setLoadError("Error cargando modelo: " + (e.message || "Unknown error"));
       }
     };
 
-    run();
+    loadIngredients();
 
     return () => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, partsKey]);
+  }, [ready, ingredientsKey]);
 
   useEffect(() => {
     return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       cleanupGroup();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <View style={[styles.container, style]}>
       <GLView style={StyleSheet.absoluteFill} onContextCreate={onContextCreate} />
-
+      
       {!ready && (
-        <View style={styles.overlay}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color="#8B5CF6" />
         </View>
       )}
-
+      
       {loadError && (
-        <View style={styles.overlay}>
-          <Text style={styles.errorTitle}>No se pudo cargar</Text>
-          <Text style={styles.errorText}>{loadError}</Text>
+        <View style={styles.center}>
+          <Text style={{ color: '#EF4444', fontWeight: 'bold', textAlign: 'center', padding: 20 }}>
+            {loadError}
+          </Text>
         </View>
       )}
     </View>
@@ -278,19 +262,13 @@ export const BurgerCanvas: React.FC<BurgerCanvasProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
-    height: 360,
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  overlay: {
+  center: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    alignItems: 'center',
   },
-  errorTitle: { color: '#FFF', fontWeight: '800', marginBottom: 8 },
-  errorText: { color: '#FCA5A5', textAlign: 'center' },
 });
