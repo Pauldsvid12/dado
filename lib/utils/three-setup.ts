@@ -3,12 +3,12 @@ import * as THREE from 'three';
 import { Platform } from 'react-native';
 
 (() => {
-  // Solo aplicar polyfills en Android/iOS
+  //Solo aplicar polyfills en Android/iOS
   if (Platform.OS === 'web') return;
 
   const g: any = globalThis as any;
 
-  // No sobreescribir si ya existe
+  //No sobreescribir si ya existe
   if (typeof g.window === 'undefined') g.window = {};
   if (typeof g.document === 'undefined') {
     g.document = {

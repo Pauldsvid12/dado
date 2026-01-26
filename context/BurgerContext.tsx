@@ -19,7 +19,7 @@ export const BurgerProvider = ({ children }: { children: ReactNode }) => {
     setIngredients((prev) => {
       const newIng = { id: `${type}-${Date.now()}`, type };
       
-      // Lógica de inserción inteligente (antes del pan de arriba si existe)
+      //logica de inserción inteligente (antes del pan de arriba)
       const topBunIndex = prev.findIndex(i => i.type === 'panarriba');
       
       if (type === 'panarriba') {

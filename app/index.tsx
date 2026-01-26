@@ -12,7 +12,7 @@ export default function HomeScreen() {
     <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.container}>
       <View style={styles.content}>
         
-        {/* Icono Principal */}
+        {/*Icono grande*/}
         <View style={styles.iconContainer}>
           <Sandwich size={80} color={COLORS.primary} strokeWidth={1.5} />
         </View>
@@ -22,7 +22,7 @@ export default function HomeScreen() {
           Visualizador interactivo de modelos .glb apilados dinámicamente
         </Text>
 
-        {/* Features / Características */}
+        {/*Caracteristicas*/}
         <View style={styles.features}>
           <View style={styles.feature}>
             <Layers size={24} color={COLORS.secondary} />
@@ -35,7 +35,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Botón Principal (SOLO HAMBURGUESA) */}
+        {/*Botón que dirige a la hamburguesa*/}
         <Pressable 
           onPress={() => router.push('/burger')} 
           style={({ pressed }) => [
@@ -52,7 +52,6 @@ export default function HomeScreen() {
             <Text style={styles.buttonText}>Ver Hamburguesa</Text>
           </LinearGradient>
         </Pressable>
-
       </View>
     </LinearGradient>
   );

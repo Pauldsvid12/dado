@@ -39,10 +39,9 @@ class AccelerometerService {
   }
 
   async isAvailable(): Promise<boolean> {
-    // En web, trátalo como no disponible para evitar crashes [web:50]
+    // En web se mostrara no disponible
     if (Platform.OS === 'web') return false;
-
-    // En móvil, esta es la forma correcta de verificar disponibilidad [web:51]
+    // En móvil se vera si esta disponible
     return Accelerometer.isAvailableAsync();
   }
 }

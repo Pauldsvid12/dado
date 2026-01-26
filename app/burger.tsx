@@ -6,7 +6,6 @@ import { BurgerCanvas } from '@/components/models3d/BurgerCanvas';
 import { IngredientType } from '@/types/burger';
 import { COLORS } from '@/lib/core/constants';
 
-// Componente interno para consumir el contexto
 const BurgerBuilder = () => {
   const { ingredients, addIngredient, resetBurger } = useBurger();
 
@@ -24,7 +23,6 @@ const BurgerBuilder = () => {
       <View style={styles.canvasContainer}>
         <BurgerCanvas ingredients={ingredients} style={{ flex: 1 }} />
       </View>
-
       {/* Controles */}
       <View style={styles.controls}>
         <Text style={styles.controlsTitle}>Arma tu Hamburguesa</Text>
@@ -42,7 +40,6 @@ const BurgerBuilder = () => {
             <Text style={styles.ingBtnText}>Reiniciar</Text>
           </Pressable>
         </ScrollView>
-        
         <Text style={styles.summary}>
           Capas actuales: {ingredients.length}
         </Text>
@@ -50,8 +47,7 @@ const BurgerBuilder = () => {
     </View>
   );
 };
-
-// Pantalla principal (wrapper del Provider)
+//pantalla principal
 export default function BurgerScreen() {
   return (
     <BurgerProvider>
