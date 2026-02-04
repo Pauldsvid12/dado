@@ -38,6 +38,18 @@
     },
     "plugins": [
       "expo-router",
+
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#bd93f9",
+          "sounds": [
+            "./assets/sounds/custom-sound.wav"
+          ]
+        }
+      ],
+
       [
         "expo-splash-screen",
         {
