@@ -44,9 +44,7 @@
         {
           "icon": "./assets/notification-icon.png",
           "color": "#bd93f9",
-          "sounds": [
-            "./assets/sounds/custom-sound.wav"
-          ]
+          "sounds": ["./assets/sounds/custom_sound.wav"]
         }
       ],
 
