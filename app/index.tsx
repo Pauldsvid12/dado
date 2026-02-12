@@ -1,14 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Sandwich, Layers, Box } from 'lucide-react-native';
+import { Sandwich, Layers, Box, LogOut } from 'lucide-react-native';
 import { COLORS } from '@/lib/core/constants';
 import { useAuth } from '@/lib/modules/auth/AuthProvider';
+import { NotificationAdapter } from '@/lib/core/notifications/notification.adapter';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { session, loading } = useAuth();
+  const { session, loading, signOut } = useAuth();
 
   // Mientras carga la sesión
   if (loading) {
@@ -58,29 +59,53 @@ export default function HomeScreen() {
     );
   }
 
-  // Si HAY sesión: tu home normal
+  // Si HAY sesión: home de pedidos (pero el botón principal abre Hamburguesa 3D)
   return (
     <LinearGradient colors={['#0F172A', '#1E293B']} style={styles.container}>
+      {/* ICONO CERRAR SESIÓN */}
+      <Pressable
+        onPress={() => {
+          Alert.alert('Cerrar sesión', '¿Seguro que deseas salir?', [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Salir',
+              style: 'destructive',
+              onPress: async () => {
+                await signOut();
+                router.replace('/');
+              },
+            },
+          ]);
+        }}
+        style={({ pressed }) => [styles.logoutButton, pressed && styles.buttonPressed]}
+        hitSlop={10}
+      >
+        <LogOut size={22} color="#E2E8F0" />
+      </Pressable>
+
       <View style={styles.content}>
         <View style={styles.iconContainer}>
           <Sandwich size={80} color={COLORS.primary} strokeWidth={1.5} />
         </View>
 
-        <Text style={styles.title}>Hamburguesa 3D</Text>
-        <Text style={styles.subtitle}>Visualizador interactivo de modelos .glb apilados dinámicamente</Text>
+        <Text style={styles.title}>Haz tu pedido</Text>
+        <Text style={styles.subtitle}>Elige tu comida, confirma y recibe una notificación cuando se envíe.</Text>
 
         <View style={styles.features}>
           <View style={styles.feature}>
             <Layers size={24} color={COLORS.secondary} />
-            <Text style={styles.featureText}>Capas 3D</Text>
+            <Text style={styles.featureText}>Menú rápido</Text>
           </View>
+
           <View style={styles.divider} />
+
           <View style={styles.feature}>
             <Box size={24} color={COLORS.success} />
-            <Text style={styles.featureText}>Blender Export</Text>
+            <Text style={styles.featureText}>Pedido seguro</Text>
           </View>
         </View>
 
+        {/* BOTÓN PRINCIPAL: abre la Hamburguesa 3D */}
         <Pressable
           onPress={() => router.push('/burger')}
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
@@ -91,8 +116,20 @@ export default function HomeScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.buttonGradient}
           >
-            <Text style={styles.buttonText}>Ver Hamburguesa</Text>
+            <Text style={styles.buttonText}>Ver hamburguesa</Text>
           </LinearGradient>
+        </Pressable>
+
+        {/* BOTÓN: ENVIAR PEDIDO (notificación local) */}
+        <Pressable
+          onPress={async () => {
+            const orderId = `#${Math.floor(Math.random() * 10000)}`;
+            Alert.alert('Pedido', 'Pedido enviado.');
+            await NotificationAdapter.notifyOrderCreated(orderId);
+          }}
+          style={({ pressed }) => [styles.buttonOutline, pressed && styles.buttonPressed]}
+        >
+          <Text style={styles.buttonTextOutline}>Confirmar pedido</Text>
         </Pressable>
       </View>
     </LinearGradient>
@@ -101,6 +138,22 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  logoutButton: {
+    position: 'absolute',
+    top: 54,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+
   content: {
     flex: 1,
     justifyContent: 'center',

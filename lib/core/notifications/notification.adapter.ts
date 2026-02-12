@@ -3,8 +3,8 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 
-const ANDROID_CHANNEL_ID = 'default_v2'; // usa v2 para evitar el canal viejo sin sonido
-const WELCOME_SOUND = 'custom_sound.wav'; // nombre base del archivo
+const ANDROID_CHANNEL_ID = 'default_v2';
+const DEFAULT_SOUND = 'custom_sound.wav';
 
 export const NotificationAdapter = {
   setup: async () => {
@@ -23,11 +23,12 @@ export const NotificationAdapter = {
         name: 'default',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
-        sound: WELCOME_SOUND,
+        sound: DEFAULT_SOUND, // solo nombre base
       });
     }
   },
 
+  // Expo push token (para push remoto). Para notificación local NO lo necesitas.
   registerForPushNotificationsAsync: async (): Promise<string | null> => {
     if (!Device.isDevice) return null;
 
@@ -49,33 +50,54 @@ export const NotificationAdapter = {
   },
 
   notifyWelcome: async () => {
-    // permisos (si el usuario dice "no", no hacemos nada)
-    const p1 = await Notifications.getPermissionsAsync();
-    if (p1.status !== 'granted') {
-      const p2 = await Notifications.requestPermissionsAsync();
-      if (p2.status !== 'granted') return;
-    }
-
-    // trigger con "type" (esto arregla tu ts(2322))
-    const trigger: Notifications.SchedulableNotificationTriggerInput =
-      Platform.OS === 'android'
-        ? {
-            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-            seconds: 1,
-            channelId: ANDROID_CHANNEL_ID,
-          }
-        : {
-            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-            seconds: 1,
-          };
+    const ok = await NotificationAdapter.ensurePermissions();
+    if (!ok) return;
 
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'Cuenta creada',
         body: 'Bienvenido/a 👋',
-        sound: WELCOME_SOUND,
+        sound: DEFAULT_SOUND,
       },
-      trigger,
+      trigger: NotificationAdapter.buildTimeTrigger(1),
     });
+  },
+
+  notifyOrderCreated: async (orderId?: string) => {
+    const ok = await NotificationAdapter.ensurePermissions();
+    if (!ok) return;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Pedido enviado',
+        body: orderId
+          ? `Tu pedido ${orderId} fue creado correctamente.`
+          : 'Tu pedido fue creado correctamente.',
+        sound: DEFAULT_SOUND,
+      },
+      trigger: NotificationAdapter.buildTimeTrigger(1),
+    });
+  },
+
+  // Helpers
+  ensurePermissions: async (): Promise<boolean> => {
+    const p1 = await Notifications.getPermissionsAsync();
+    if (p1.status === 'granted') return true;
+
+    const p2 = await Notifications.requestPermissionsAsync();
+    return p2.status === 'granted';
+  },
+
+  buildTimeTrigger: (seconds: number): Notifications.SchedulableNotificationTriggerInput => {
+    return Platform.OS === 'android'
+      ? {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds,
+          channelId: ANDROID_CHANNEL_ID,
+        }
+      : {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds,
+        };
   },
 };
