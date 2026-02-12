@@ -30,8 +30,13 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (Expo recomienda ignorar .env*.local) [web:694]
 .env*.local
+
+# env files (para evitar subir secretos)
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
